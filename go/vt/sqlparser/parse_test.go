@@ -1807,8 +1807,6 @@ var (
 		}, {
 			input: "select name, dense_rank() over (partition by b order by c asc), lag(d) over ( order by e desc) from t",
 		}, {
-			input: "select name, dense_rank() over window_name from t",
-		}, {
 			input: "select name, dense_rank() over ( order by y asc ROWS CURRENT ROW) from t",
 		}, {
 			input: "select name, dense_rank() over (partition by x ROWS CURRENT ROW) from t",
@@ -1853,9 +1851,19 @@ var (
 		}, {
 			input: "select name, row_number() over (partition by x RANGE BETWEEN interval '2:30' MINUTE_SECOND PRECEDING AND CURRENT ROW) from t",
 		}, {
-			input: "select name, dense_rank() over window_name from t",
+			input: "select name, dense_rank() over (w1 partition by x) from t window w1 as ( order by y asc)",
 		}, {
-			input: "select name, dense_rank() over window_name from t",
+			input: "select name, dense_rank() over (w1 partition by x), count(*) over (w2) from t window w1 as ( order by y asc), w2 as (w1 partition by x)",
+		}, {
+			input: "select name, dense_rank() over (w3) from t window w1 as (w2), w2 as (), w3 as (w1)",
+		}, {
+			input: "select name, dense_rank() over (window_name) from t",
+		}, {
+			input: "with a as (select (1) from dual) select name, dense_rank() over (window_name) from a",
+		}, {
+			input: "select name, dense_rank() over (w1 partition by x) from t window w1 as (ROWS UNBOUNDED PRECEDING)",
+		}, {
+			input: "select name, dense_rank() over (w1 partition by x) from t window w1 as (ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
 		}, {
 			input: `SELECT pk,
 					(SELECT max(pk) FROM one_pk WHERE pk < opk.pk) as max,
@@ -2719,9 +2727,6 @@ func TestInvalid(t *testing.T) {
 	}, {
 		input: "select * from test order by a union select * from test",
 		err:   "syntax error",
-	}, {
-		input: "select sum(x) over (rows unbounded preceding) from a",
-		err:   "window definition with frame must include OVER BY or PARTITION BY",
 	}}
 
 	for _, tcase := range invalidSQL {
