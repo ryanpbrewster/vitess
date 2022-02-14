@@ -1424,6 +1424,9 @@ var (
 			input:  "show session status",
 			output: "show session status",
 		}, {
+			input:  "show session status LIKE 'Ssl_cipher'",
+			output: "show session status like 'Ssl_cipher'",
+		}, {
 			input:  "show table status",
 			output: "show table status",
 		}, {
@@ -2208,7 +2211,7 @@ var (
 				"FILE, REFERENCES, INDEX, ALTER, SHOW DATABASES, SUPER, CREATE TEMPORARY TABLES, LOCK TABLES, " +
 				"EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, " +
 				"ALTER ROUTINE, CREATE USER, EVENT, TRIGGER, CREATE TABLESPACE, CREATE ROLE, DROP ROLE ON *.* TO " +
-				"`UserName`@`%` WITH GRANT OPTION" ,
+				"`UserName`@`%` WITH GRANT OPTION",
 			output: "grant select, insert, update, delete, create, drop, reload, shutdown, process, " +
 				"file, references, index, alter, show databases, super, create temporary tables, lock tables, " +
 				"execute, replication slave, replication client, create view, show view, create routine, " +
