@@ -1427,6 +1427,9 @@ var (
 			input:  "show session status LIKE 'Ssl_cipher'",
 			output: "show session status like 'Ssl_cipher'",
 		}, {
+			input:  "show session status LIKE '%x'",
+			output: "show session status like '%x'",
+		}, {
 			input:  "show table status",
 			output: "show table status",
 		}, {
@@ -4278,6 +4281,9 @@ var (
 	}, {
 		input:  "drop user insert@table",
 		output: "syntax error at position 17 near 'insert'",
+	}, {
+		input:  "show session status like asd",
+		output: "syntax error at position 29 near 'asd'",
 	},
 	}
 )
