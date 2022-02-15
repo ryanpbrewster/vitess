@@ -1430,6 +1430,9 @@ var (
 			input:  "show session status LIKE '%x'",
 			output: "show session status like '%x'",
 		}, {
+			input:  "show session status where value > 5",
+			output: "show session status where `value` > 5",
+		}, {
 			input:  "show table status",
 			output: "show table status",
 		}, {
