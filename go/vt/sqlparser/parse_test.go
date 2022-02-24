@@ -4460,7 +4460,7 @@ func TestKeywordsCreate(t *testing.T) {
 	}
 }
 
-func TestKeywordInsertStatements(t *testing.T) {
+func TestKeywordRecordChangeStatements(t *testing.T) {
 	t.Skip()
 
 	iAliasTest := "INSERT INTO t (%s) VALUES (1)"
