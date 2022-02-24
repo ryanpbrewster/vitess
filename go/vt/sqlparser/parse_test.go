@@ -2125,9 +2125,6 @@ var (
 			input:  "DROP USER `User``Name`",
 			output: "drop user `User``Name`@`%`",
 		}, {
-			input:  "DROP USER user@rank",
-			output: "drop user `user`@`rank`",
-		}, {
 			input:  "DROP USER ''",
 			output: "drop user ``@`%`",
 		}, {
@@ -2995,6 +2992,12 @@ func TestKeywords(t *testing.T) {
 		}, {
 			input:  "select status from t",
 			output: "select `status` from t",
+		}, {
+			input:  "select comment from t",
+			output: "select `comment` from t",
+		}, {
+			input:  "select 1 as comment",
+			output: "select 1 as `comment` from dual",
 		}, {
 			input:  "select variables from t",
 			output: "select `variables` from t",
@@ -4337,6 +4340,135 @@ func TestParseDjangoQueries(t *testing.T) {
 		if err != nil {
 			t.Error(scanner.Text())
 			t.Errorf(" Error: %v", err)
+		}
+	}
+}
+
+// reservedKeywords corresponds to the reserved_keywords variable in yacc. Update this as needed when studying the effects
+// of keywords on the behavior of certain queroes
+var reservedKeywords = []string{
+	"account", "add", "after", "alter", "and", "array", "as", "asc", "attribute", "auto_increment", "avg", "between",
+	"binary", "bit_and", "bit_or", "bit_xor", "by", "call", "case", "collate", "convert", "connection", "count", "create",
+	"cross", "current", "current_date", "current_time", "current_timestamp", "database", "databases", "default", "delete",
+	"desc", "describe", "deterministic", "distinct", "div", "drop", "else", "elseif", "end", "escape", "event", "execute",
+	"exists", "explain", "failed_login_attempts", "false", "file", "first", "following", "for", "force", "from", "function",
+	"grant", "group", "grouping", "groups", "having", "identified", "if", "ignore", "in", "inout", "index", "inner", "insert",
+	"interval", "into", "is", "join", "json_arrayagg", "json_objectagg", "json_table", "key", "kill", "lateral", "left",
+	"like", "limit", "localtime", "localtimestamp", "lock", "match", "max", "maxvalue", "member", "min", "mod", "modifies",
+	"natural", "next", "none", "not", "null", "of", "off", "on", "or", "order", "out", "outer", "over", "password",
+	"password_lock_time", "procedure", "process", "reads", "recursive", "references", "regexp", "reload", "rename",
+	"replace", "require", "revoke", "right", "schema", "select", "separator", "set", "show", "shutdown", "std", "stddev",
+	"stddev_pop", "stddev_samp", "sql", "straight_join", "substr", "substring", "sum", "super", "system", "table", "then",
+	"timestampadd", "timestampdiff", "to", "trigger", "true", "union", "unique", "unlock", "update", "usage", "use", "using",
+	"utc_date", "utc_time", "utc_timestamp", "values", "value", "variance", "var_pop", "var_samp", "when", "where", "window",
+	"with", "status",
+}
+
+var columnNameSafeKeywords = map[string]struct{}{
+	"avg": {}, "bit_and": {}, "bit_or": {}, "bit_xor": {}, "count": {}, "cume_dist": {}, "dense_rank": {}, "first_value": {}, "json_arrayagg": {}, "json_objectagg": {},
+	"lag": {}, "last_value": {}, "lead": {}, "max": {}, "min": {}, "nth_value": {}, "ntile": {}, "percent_rank": {}, "rank": {}, "row_number": {}, "status": {}, "std": {}, "stddev": {},
+	"stddev_pop": {}, "stddev_samp": {}, "sum": {}, "value": {}, "variance": {}, "var_pop": {}, "var_samp": {}, "comment_keyword": {},
+}
+
+var nonReservedKeywords = []string{"action", "active", "admin", "against", "authentication", "before", "begin", "bigint",
+	"serial", "bit", "blob", "bool", "boolean", "buckets", "cascade", "catalog_name", "change", "char", "character", "charset",
+	"check", "cipher", "class_origin", "client", "clone", "collation", "columns", "column_name", "commit", "committed", "component",
+	"constraint", "constraint_catalog", "constraint_name", "constraint_schema", "contains", "cursor_name", "data", "date", "datetime",
+	"day", "decimal", "declare", "definer", "definition", "description", "double", "duplicate", "each", "enforced", "engines", "enum",
+	"except", "exclude", "expansion", "expire", "fields", "fixed", "float_type", "flush", "foreign", "fulltext", "geomcollection",
+	"geometry", "geometrycollection", "get_master_public_key", "global", "grants", "histogram", "history", "inactive", "indexes",
+	"initial", "int", "integer", "invisible", "invoker", "isolation", "issuer", "json", "keys", "key_block_size", "language", "last_insert_id",
+	"less", "level", "lines", "linestring", "load", "local", "locked", "longblob", "longtext", "low_priority", "master_compression_algorithms",
+	"master_public_key_path", "master_tls_ciphersuites", "master_zstd_compression_level", "max_connections_per_hour", "max_queries_per_hour",
+	"max_updates_per_hour", "max_user_connections", "mediumblob", "mediumint", "mediumtext", "message_text", "mode", "modify", "multilinestring",
+	"multipoint", "multipolygon", "mysql_errno", "names", "national", "nchar", "nested", "network_namespace", "never", "no", "nowait", "nulls",
+	"numeric", "offset", "oj", "old", "only", "optimize", "option", "optional", "optionally", "ordinality", "organization", "others", "partition",
+	"path", "persist", "persist_only", "plugins", "point", "polygon", "precedes", "preceding", "precision", "primary", "privilege_checks_user",
+	"privileges", "proxy", "query", "random", "range", "read", "real", "reference", "release", "reorganize", "repair", "repeatable", "replication",
+	"require_row_format", "resignal", "resource", "respect", "restart", "restrict", "retain", "reuse", "role", "rollback", "routine", "rows",
+	"savepoint", "schemas", "schema_name", "secondary", "secondary_engine", "secondary_load", "secondary_unload", "security", "sequence",
+	"serializable", "session", "share", "signal", "signed", "skip", "slave", "smallint", "spatial", "sqlstate", "srid", "ssl", "start",
+	"starting", "stream", "subclass_origin", "subject", "tables", "tablespace", "table_name", "temporary", "text", "than", "thread_priority",
+	"ties", "time", "timestamp", "tinyblob", "tinyint", "tinytext", "transaction", "triggers", "truncate", "unbounded", "uncommitted",
+	"unsigned", "unused", "user", "varbinary", "varchar", "variables", "varying", "vcpu", "view", "visible", "warnings", "work", "write",
+	"x509", "year", "zerofil",
+}
+
+func TestKeywordsSelect(t *testing.T) {
+	t.Skip()
+	aliasTest := "SELECT 1 as %s"
+
+	for _, rk := range reservedKeywords {
+		if _, ok := columnNameSafeKeywords[rk]; ok {
+			test := fmt.Sprintf(aliasTest, rk)
+			t.Run(test, func(t *testing.T) {
+				_, err := Parse(test)
+				assert.NoError(t, err)
+			})
+			continue
+		}
+
+		test := fmt.Sprintf(aliasTest, rk)
+		t.Run(test, func(t *testing.T) {
+			_, err := Parse(test)
+			assert.Error(t, err)
+		})
+	}
+
+	for _, nrk := range nonReservedKeywords {
+		test := fmt.Sprintf(aliasTest, nrk)
+		t.Run(test, func(t *testing.T) {
+			_, err := Parse(test)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestKeywordsCreate(t *testing.T) {
+	t.Skip()
+
+	aliasTest := "CREATE TABLE t(%s int)"
+	for _, rk := range reservedKeywords {
+		test := fmt.Sprintf(aliasTest, rk)
+		t.Run(test, func(t *testing.T) {
+			_, err := Parse(test)
+			assert.Error(t, err)
+		})
+	}
+
+	for _, rk := range nonReservedKeywords {
+		test := fmt.Sprintf(aliasTest, rk)
+		t.Run(test, func(t *testing.T) {
+			_, err := Parse(test)
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestKeywordInsertStatements(t *testing.T) {
+	t.Skip()
+
+	iAliasTest := "INSERT INTO t (%s) VALUES (1)"
+	dAliasTest := "DELETE FROM t where %s=1"
+	uAliasTest := "UPDATE t SET %s=1"
+	for _, rk := range reservedKeywords {
+		tests := []string{fmt.Sprintf(iAliasTest, rk), fmt.Sprintf(dAliasTest, rk), fmt.Sprintf(uAliasTest, rk)}
+		for _, test := range tests {
+			t.Run(test, func(t *testing.T) {
+				_, err := Parse(test)
+				assert.Error(t, err)
+			})
+
+		}
+	}
+
+	for _, rk := range nonReservedKeywords {
+		tests := []string{fmt.Sprintf(iAliasTest, rk), fmt.Sprintf(dAliasTest, rk), fmt.Sprintf(uAliasTest, rk)}
+		for _, test := range tests {
+			t.Run(test, func(t *testing.T) {
+				_, err := Parse(test)
+				assert.NoError(t, err)
+			})
 		}
 	}
 }
