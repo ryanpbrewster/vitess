@@ -3005,6 +3005,9 @@ func TestKeywords(t *testing.T) {
 			input:  "select comment from t",
 			output: "select `comment` from t",
 		}, {
+			input:  "select table_commment AS Comment FROM information_schema.TABLES",
+			output: "select table_commment as `Comment` from information_schema.`TABLES`",
+		}, {
 			input:  "select 1 as comment",
 			output: "select 1 as `comment` from dual",
 		}, {
