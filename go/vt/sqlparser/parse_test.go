@@ -4440,7 +4440,6 @@ func TestKeywordsCorrectlyParse(t *testing.T) {
 
 // TestKeywordsThatDontParseButShould documents behavior where the parser is incorrectly throwing an error for a valid keyword.
 func TestKeywordsThatDontParseButShould(t *testing.T) {
-	t.Skip()
 	aliasTest := "SELECT 1 as %s"
 	iTest := "INSERT INTO t (%s) VALUES (1)"
 	dTest := "DELETE FROM t where %s=1"
@@ -4453,6 +4452,7 @@ func TestKeywordsThatDontParseButShould(t *testing.T) {
 		for _, query := range tests {
 			test := fmt.Sprintf(query, kw)
 			t.Run(test, func(t *testing.T) {
+				t.Skip()
 				_, err := Parse(test)
 				assert.NoError(t, err)
 			})
@@ -4462,8 +4462,6 @@ func TestKeywordsThatDontParseButShould(t *testing.T) {
 
 // TestKeywordsParseButShouldnt  documents bad behavior where the parser is incorrectly parsing a keyword that should error.
 func TestKeywordsParseButShouldnt(t *testing.T) {
-	t.Skip()
-
 	aliasTest := "SELECT 1 as %s"
 	iTest := "INSERT INTO t (%s) VALUES (1)"
 	dTest := "DELETE FROM t where %s=1"
@@ -4476,6 +4474,7 @@ func TestKeywordsParseButShouldnt(t *testing.T) {
 		for _, query := range tests {
 			test := fmt.Sprintf(query, kw)
 			t.Run(test, func(t *testing.T) {
+				t.Skip()
 				_, err := Parse(test)
 				assert.Error(t, err)
 			})
@@ -4487,6 +4486,7 @@ func TestKeywordsParseButShouldnt(t *testing.T) {
 		for _, query := range tests {
 			test := fmt.Sprintf(query, kw)
 			t.Run(test, func(t *testing.T) {
+				t.Skip()
 				_, err := Parse(test)
 				assert.Error(t, err)
 			})
