@@ -4417,13 +4417,15 @@ var incorrectlyParseForNonSelect = []string{
 	"utc_date", "utc_time", "utc_timestamp", "values", "when", "where", "window", "with",
 }
 
+// TestKeywordsCorrectlyParse ensures that certain keywords can be parsed by a series of edit queries.
 func TestKeywordsCorrectlyParse(t *testing.T) {
 	aliasTest := "SELECT 1 as %s"
 	iTest := "INSERT INTO t (%s) VALUES (1)"
 	dTest := "DELETE FROM t where %s=1"
 	uTest := "UPDATE t SET %s=1"
+	cTest := "CREATE TABLE t(%s int)"
 
-	tests := []string{aliasTest, iTest, dTest, uTest}
+	tests := []string{aliasTest, iTest, dTest, uTest, cTest}
 
 	for _, kw := range correctlyDoParse {
 		for _, query := range tests {
@@ -4436,14 +4438,16 @@ func TestKeywordsCorrectlyParse(t *testing.T) {
 	}
 }
 
+// TestKeywordsThatDontParseButShould documents behavior where the parser is incorrectly throwing an error for a valid keyword.
 func TestKeywordsThatDontParseButShould(t *testing.T) {
 	t.Skip()
 	aliasTest := "SELECT 1 as %s"
 	iTest := "INSERT INTO t (%s) VALUES (1)"
 	dTest := "DELETE FROM t where %s=1"
 	uTest := "UPDATE t SET %s=1"
+	cTest := "CREATE TABLE t(%s int)"
 
-	tests := []string{aliasTest, iTest, dTest, uTest}
+	tests := []string{aliasTest, iTest, dTest, uTest, cTest}
 
 	for _, kw := range incorrectlyDontParse {
 		for _, query := range tests {
@@ -4456,6 +4460,7 @@ func TestKeywordsThatDontParseButShould(t *testing.T) {
 	}
 }
 
+// TestKeywordsParseButShouldnt  documents bad behavior where the parser is incorrectly parsing a keyword that should error.
 func TestKeywordsParseButShouldnt(t *testing.T) {
 	t.Skip()
 
@@ -4463,8 +4468,9 @@ func TestKeywordsParseButShouldnt(t *testing.T) {
 	iTest := "INSERT INTO t (%s) VALUES (1)"
 	dTest := "DELETE FROM t where %s=1"
 	uTest := "UPDATE t SET %s=1"
+	cTest := "CREATE TABLE t(%s int)"
 
-	tests := []string{aliasTest, iTest, dTest, uTest}
+	tests := []string{aliasTest, iTest, dTest, uTest, cTest}
 
 	for _, kw := range incorrectlyParse {
 		for _, query := range tests {
@@ -4488,12 +4494,14 @@ func TestKeywordsParseButShouldnt(t *testing.T) {
 	}
 }
 
+// TestKeywordsCorrectlyDontParse ensures certain keywords should not be parsed in certain queries.
 func TestKeywordsCorrectlyDontParse(t *testing.T) {
 	aliasTest := "SELECT 1 as %s"
 	// TODO: Want all of these passing eventually
-	//iTest := "INSERT INTO t (%s) VALUES (1)"
-	///dTest := "DELETE FROM t where %s=1"
-	//uTest := "UPDATE t SET %s=1"
+	// iTest := "INSERT INTO t (%s) VALUES (1)"
+	// dTest := "DELETE FROM t where %s=1"
+	// uTest := "UPDATE t SET %s=1"
+	// cTest := "CREATE TABLE t(%s int)"
 
 	tests := []string{aliasTest}
 
