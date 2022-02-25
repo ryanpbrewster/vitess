@@ -4359,33 +4359,11 @@ func TestParseDjangoQueries(t *testing.T) {
 	}
 }
 
-// reservedKeywords corresponds to the reserved_keywords variable in yacc. Update this as needed when studying the effects
-// of keywords on the behavior of certain queroes
-var reservedKeywords = []string{
-	"account", "add", "after", "alter", "and", "array", "as", "asc", "attribute", "auto_increment", "avg", "between",
-	"binary", "bit_and", "bit_or", "bit_xor", "by", "call", "case", "collate", "convert", "connection", "count", "create",
-	"cross", "current", "current_date", "current_time", "current_timestamp", "database", "databases", "default", "delete",
-	"desc", "describe", "deterministic", "distinct", "div", "drop", "else", "elseif", "end", "escape", "event", "execute",
-	"exists", "explain", "failed_login_attempts", "false", "file", "first", "following", "for", "force", "from", "function",
-	"grant", "group", "grouping", "groups", "having", "identified", "if", "ignore", "in", "inout", "index", "inner", "insert",
-	"interval", "into", "is", "join", "json_arrayagg", "json_objectagg", "json_table", "key", "kill", "lateral", "left",
-	"like", "limit", "localtime", "localtimestamp", "lock", "match", "max", "maxvalue", "member", "min", "mod", "modifies",
-	"natural", "next", "none", "not", "null", "of", "off", "on", "or", "order", "out", "outer", "over", "password",
-	"password_lock_time", "procedure", "process", "reads", "recursive", "references", "regexp", "reload", "rename",
-	"replace", "require", "revoke", "right", "schema", "select", "separator", "set", "show", "shutdown", "std", "stddev",
-	"stddev_pop", "stddev_samp", "sql", "straight_join", "substr", "substring", "sum", "super", "system", "table", "then",
-	"timestampadd", "timestampdiff", "to", "trigger", "true", "union", "unique", "unlock", "update", "usage", "use", "using",
-	"utc_date", "utc_time", "utc_timestamp", "values", "value", "variance", "var_pop", "var_samp", "when", "where", "window",
-	"with", "status",
-}
-
-var columnNameSafeKeywords = map[string]struct{}{
-	"avg": {}, "bit_and": {}, "bit_or": {}, "bit_xor": {}, "count": {}, "cume_dist": {}, "dense_rank": {}, "first_value": {}, "json_arrayagg": {}, "json_objectagg": {},
-	"lag": {}, "last_value": {}, "lead": {}, "max": {}, "min": {}, "nth_value": {}, "ntile": {}, "percent_rank": {}, "rank": {}, "row_number": {}, "status": {}, "std": {}, "stddev": {},
-	"stddev_pop": {}, "stddev_samp": {}, "sum": {}, "value": {}, "variance": {}, "var_pop": {}, "var_samp": {}, "comment_keyword": {},
-}
-
-var nonReservedKeywords = []string{"action", "active", "admin", "against", "authentication", "before", "begin", "bigint",
+var correctlyDoParse = []string{"avg", "bit_and", "bit_or", "bit_xor", "count", "json_arrayagg", "json_objectagg", "max", "min",
+	"status", "std", "stddev", "stddev_pop", "stddev_samp", "sum", "value", "variance", "var_pop", "var_samp", "comment_keyword", "array",
+	"count", "max", "min", "std", "stddev", "stddev_pop", "stddev_samp", "sum", "system", "value", "variance", "var_pop", "var_samp",
+	"json_arrayagg", "json_objectagg", "json_table", "min",
+	"status", "avg", "action", "active", "admin", "against", "authentication", "before", "begin", "bigint",
 	"serial", "bit", "blob", "bool", "boolean", "buckets", "cascade", "catalog_name", "change", "char", "character", "charset",
 	"check", "cipher", "class_origin", "client", "clone", "collation", "columns", "column_name", "commit", "committed", "component",
 	"constraint", "constraint_catalog", "constraint_name", "constraint_schema", "contains", "cursor_name", "data", "date", "datetime",
@@ -4406,83 +4384,125 @@ var nonReservedKeywords = []string{"action", "active", "admin", "against", "auth
 	"starting", "stream", "subclass_origin", "subject", "tables", "tablespace", "table_name", "temporary", "text", "than", "thread_priority",
 	"ties", "time", "timestamp", "tinyblob", "tinyint", "tinytext", "transaction", "triggers", "truncate", "unbounded", "uncommitted",
 	"unsigned", "unused", "user", "varbinary", "varchar", "variables", "varying", "vcpu", "view", "visible", "warnings", "work", "write",
-	"x509", "year", "zerofil",
+	"x509", "year", "zerofil"}
+var correctlyDontParse = []string{"auto_increment", "add", "and", "alter", "mod", "asc", "as", "between", "binary", "by",
+	"call", "case", "collate", "convert", "connection", "create", "cross", "current", "current_date", "current_time", "current_timestamp", "database", "databases", "default", "delete",
+	"desc", "describe", "deterministic", "distinct", "div", "drop", "else", "elseif", "end", "escape", "event", "execute",
+	"exists", "explain", "failed_login_attempts", "false", "file", "first", "following", "for", "force", "from", "function",
+	"grant", "group", "grouping", "groups", "having", "identified", "if", "ignore", "in", "inout", "index", "inner", "insert",
+	"interval", "into", "is", "join", "key", "kill", "left",
+	"like", "limit", "localtime", "localtimestamp", "lock", "match", "maxvalue", "mod", "modifies",
+	"natural", "next", "none", "not", "null", "of", "off", "on", "or", "order", "out", "outer", "over", "password",
+	"password_lock_time", "procedure", "process", "reads", "recursive", "references", "regexp", "reload", "rename",
+	"replace", "require", "revoke", "right", "schema", "select", "separator", "set", "show", "shutdown", "sql", "straight_join", "substr", "substring", "super", "table", "then",
+	"timestampadd", "timestampdiff", "to", "trigger", "true", "union", "unique", "unlock", "update", "usage", "use", "using",
+	"utc_date", "utc_time", "utc_timestamp", "values", "when", "where", "window",
+	"with"}
+
+// TODO: There could be some inconsistencies here with MySQL but broadly correct.
+var incorrectlyDontParse = []string{"after", "attribute"}
+var incorrectlyParse = []string{"percent_rank", "last_value", "first_value", "nth_value", "dense_rank", "rank", "row_number", "cume_dist", "lead", "lag", "ntile", "lateral", "member"}
+var incorrectlyParseForNonSelect = []string{
+	"auto_increment", "add", "and", "alter", "mod", "asc", "as", "between", "binary", "by",
+	"call", "case", "collate", "convert", "connection", "create", "cross", "current", "current_date", "current_time", "current_timestamp", "database", "databases", "default", "delete",
+	"desc", "describe", "deterministic", "distinct", "div", "drop", "else", "elseif", "end", "escape", "event", "execute",
+	"exists", "explain", "failed_login_attempts", "false", "file", "first", "following", "for", "force", "from", "function",
+	"grant", "group", "grouping", "groups", "having", "identified", "if", "ignore", "in", "inout", "index", "inner", "insert",
+	"interval", "into", "is", "join", "key", "kill", "left",
+	"like", "limit", "localtime", "localtimestamp", "lock", "match", "maxvalue", "mod", "modifies",
+	"natural", "next", "none", "not", "null", "of", "off", "on", "or", "order", "out", "outer", "over", "password",
+	"password_lock_time", "procedure", "process", "reads", "recursive", "references", "regexp", "reload", "rename",
+	"replace", "require", "revoke", "right", "schema", "select", "separator", "set", "show", "shutdown", "sql", "straight_join", "substr", "substring", "super", "table", "then",
+	"timestampadd", "timestampdiff", "to", "trigger", "true", "union", "unique", "unlock", "update", "usage", "use", "using",
+	"utc_date", "utc_time", "utc_timestamp", "values", "when", "where", "window", "with",
 }
 
-func TestKeywordsSelect(t *testing.T) {
-	t.Skip()
+func TestKeywordsCorrectlyParse(t *testing.T) {
 	aliasTest := "SELECT 1 as %s"
+	iTest := "INSERT INTO t (%s) VALUES (1)"
+	dTest := "DELETE FROM t where %s=1"
+	uTest := "UPDATE t SET %s=1"
 
-	for _, rk := range reservedKeywords {
-		if _, ok := columnNameSafeKeywords[rk]; ok {
-			test := fmt.Sprintf(aliasTest, rk)
+	tests := []string{aliasTest, iTest, dTest, uTest}
+
+	for _, kw := range correctlyDoParse {
+		for _, query := range tests {
+			test := fmt.Sprintf(query, kw)
 			t.Run(test, func(t *testing.T) {
 				_, err := Parse(test)
 				assert.NoError(t, err)
 			})
-			continue
 		}
-
-		test := fmt.Sprintf(aliasTest, rk)
-		t.Run(test, func(t *testing.T) {
-			_, err := Parse(test)
-			assert.Error(t, err)
-		})
-	}
-
-	for _, nrk := range nonReservedKeywords {
-		test := fmt.Sprintf(aliasTest, nrk)
-		t.Run(test, func(t *testing.T) {
-			_, err := Parse(test)
-			assert.NoError(t, err)
-		})
 	}
 }
 
-func TestKeywordsCreate(t *testing.T) {
+func TestKeywordsThatDontParseButShould(t *testing.T) {
 	t.Skip()
+	aliasTest := "SELECT 1 as %s"
+	iTest := "INSERT INTO t (%s) VALUES (1)"
+	dTest := "DELETE FROM t where %s=1"
+	uTest := "UPDATE t SET %s=1"
 
-	aliasTest := "CREATE TABLE t(%s int)"
-	for _, rk := range reservedKeywords {
-		test := fmt.Sprintf(aliasTest, rk)
-		t.Run(test, func(t *testing.T) {
-			_, err := Parse(test)
-			assert.Error(t, err)
-		})
-	}
+	tests := []string{aliasTest, iTest, dTest, uTest}
 
-	for _, rk := range nonReservedKeywords {
-		test := fmt.Sprintf(aliasTest, rk)
-		t.Run(test, func(t *testing.T) {
-			_, err := Parse(test)
-			assert.NoError(t, err)
-		})
+	for _, kw := range incorrectlyDontParse {
+		for _, query := range tests {
+			test := fmt.Sprintf(query, kw)
+			t.Run(test, func(t *testing.T) {
+				_, err := Parse(test)
+				assert.NoError(t, err)
+			})
+		}
 	}
 }
 
-func TestKeywordRecordChangeStatements(t *testing.T) {
+func TestKeywordsParseButShouldnt(t *testing.T) {
 	t.Skip()
 
-	iAliasTest := "INSERT INTO t (%s) VALUES (1)"
-	dAliasTest := "DELETE FROM t where %s=1"
-	uAliasTest := "UPDATE t SET %s=1"
-	for _, rk := range reservedKeywords {
-		tests := []string{fmt.Sprintf(iAliasTest, rk), fmt.Sprintf(dAliasTest, rk), fmt.Sprintf(uAliasTest, rk)}
-		for _, test := range tests {
+	aliasTest := "SELECT 1 as %s"
+	iTest := "INSERT INTO t (%s) VALUES (1)"
+	dTest := "DELETE FROM t where %s=1"
+	uTest := "UPDATE t SET %s=1"
+
+	tests := []string{aliasTest, iTest, dTest, uTest}
+
+	for _, kw := range incorrectlyParse {
+		for _, query := range tests {
+			test := fmt.Sprintf(query, kw)
 			t.Run(test, func(t *testing.T) {
 				_, err := Parse(test)
 				assert.Error(t, err)
 			})
-
 		}
 	}
 
-	for _, rk := range nonReservedKeywords {
-		tests := []string{fmt.Sprintf(iAliasTest, rk), fmt.Sprintf(dAliasTest, rk), fmt.Sprintf(uAliasTest, rk)}
-		for _, test := range tests {
+	tests = []string{iTest, dTest, uTest}
+	for _, kw := range incorrectlyParseForNonSelect {
+		for _, query := range tests {
+			test := fmt.Sprintf(query, kw)
 			t.Run(test, func(t *testing.T) {
 				_, err := Parse(test)
-				assert.NoError(t, err)
+				assert.Error(t, err)
+			})
+		}
+	}
+}
+
+func TestKeywordsCorrectlyDontParse(t *testing.T) {
+	aliasTest := "SELECT 1 as %s"
+	// TODO: Want all of these passing eventually
+	//iTest := "INSERT INTO t (%s) VALUES (1)"
+	///dTest := "DELETE FROM t where %s=1"
+	//uTest := "UPDATE t SET %s=1"
+
+	tests := []string{aliasTest}
+
+	for _, kw := range correctlyDontParse {
+		for _, query := range tests {
+			test := fmt.Sprintf(query, kw)
+			t.Run(test, func(t *testing.T) {
+				_, err := Parse(test)
+				assert.Error(t, err)
 			})
 		}
 	}
