@@ -220,7 +220,7 @@ func yyOldPosition(yylex interface{}) int {
 
 // DDL Tokens
 %token <bytes> CREATE ALTER DROP RENAME ANALYZE ADD MODIFY CHANGE
-%token <bytes> SCHEMA TABLE INDEX INDEXES VIEW TO IGNORE IF PRIMARY COLUMN SPATIAL FULLTEXT KEY_BLOCK_SIZE CHECK
+%token <bytes> SCHEMA TABLE INDEX INDEXES VIEW TO IGNORE IF PRIMARY FULLTEXT COLUMN SPATIAL KEY_BLOCK_SIZE CHECK
 %token <bytes> ACTION CASCADE CONSTRAINT FOREIGN NO REFERENCES RESTRICT
 %token <bytes> FIRST AFTER
 %token <bytes> SHOW DESCRIBE EXPLAIN DATE ESCAPE REPAIR OPTIMIZE TRUNCATE FORMAT
@@ -2561,10 +2561,6 @@ column_key:
   {
     $$ = colKeyPrimary
   }
-| KEY
-  {
-    $$ = colKey
-  }
 | UNIQUE KEY
   {
     $$ = colKeyUniqueKey
@@ -2572,6 +2568,14 @@ column_key:
 | UNIQUE
   {
     $$ = colKeyUnique
+  }
+| FULLTEXT KEY
+  {
+    $$ = colKeyFulltextKey
+  }
+| KEY
+  {
+    $$ = colKey
   }
 
 column_comment:
@@ -2718,6 +2722,10 @@ index_info:
 | SPATIAL index_or_key name_opt
   {
     $$ = &IndexInfo{Type: string($1) + " " + string($2), Name: NewColIdent($3), Spatial: true, Unique: false}
+  }
+| FULLTEXT index_or_key_opt name_opt
+  {
+    $$ = &IndexInfo{Type: string($1) + " " + string($2), Name: NewColIdent($3), Fulltext: true, Unique: false}
   }
 | CONSTRAINT name_opt UNIQUE index_or_key_opt name_opt
   {
