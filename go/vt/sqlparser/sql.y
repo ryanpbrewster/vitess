@@ -2725,7 +2725,7 @@ index_info:
   }
 | FULLTEXT index_or_key_opt name_opt
   {
-    $$ = &IndexInfo{Type: string($1) + " " + string($2), Name: NewColIdent($3), Fulltext: true, Unique: false}
+    $$ = &IndexInfo{Type: string($1) + " " + string($2), Name: NewColIdent($3), Fulltext: true}
   }
 | CONSTRAINT name_opt UNIQUE index_or_key_opt name_opt
   {

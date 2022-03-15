@@ -9278,7 +9278,7 @@ yydefault:
 		yyDollar = yyS[yypt-3 : yypt+1]
 //line sql.y:2727
 		{
-			yyVAL.indexInfo = &IndexInfo{Type: string(yyDollar[1].bytes) + " " + string(yyDollar[2].str), Name: NewColIdent(yyDollar[3].str), Fulltext: true, Unique: false}
+			yyVAL.indexInfo = &IndexInfo{Type: string(yyDollar[1].bytes) + " " + string(yyDollar[2].str), Name: NewColIdent(yyDollar[3].str), Fulltext: true}
 		}
 	case 513:
 		yyDollar = yyS[yypt-5 : yypt+1]
