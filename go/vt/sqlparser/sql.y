@@ -220,7 +220,7 @@ func yyOldPosition(yylex interface{}) int {
 
 // DDL Tokens
 %token <bytes> CREATE ALTER DROP RENAME ANALYZE ADD MODIFY CHANGE
-%token <bytes> SCHEMA TABLE INDEX INDEXES VIEW TO IGNORE IF PRIMARY FULLTEXT COLUMN SPATIAL KEY_BLOCK_SIZE CHECK
+%token <bytes> SCHEMA TABLE INDEX INDEXES VIEW TO IGNORE IF PRIMARY COLUMN SPATIAL FULLTEXT KEY_BLOCK_SIZE CHECK
 %token <bytes> ACTION CASCADE CONSTRAINT FOREIGN NO REFERENCES RESTRICT
 %token <bytes> FIRST AFTER
 %token <bytes> SHOW DESCRIBE EXPLAIN DATE ESCAPE REPAIR OPTIMIZE TRUNCATE FORMAT
@@ -2561,6 +2561,10 @@ column_key:
   {
     $$ = colKeyPrimary
   }
+| KEY
+  {
+    $$ = colKey
+  }
 | UNIQUE KEY
   {
     $$ = colKeyUniqueKey
@@ -2572,10 +2576,6 @@ column_key:
 | FULLTEXT KEY
   {
     $$ = colKeyFulltextKey
-  }
-| KEY
-  {
-    $$ = colKey
   }
 
 column_comment:
