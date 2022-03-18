@@ -47,7 +47,6 @@ type Tokenizer struct {
 	nesting              int
 	multi                bool
 	specialComment       *Tokenizer
-	partialIdentifier    []byte
 	potentialAccountName bool
 
 	// If true, the parser should collaborate to set `stopped` on this
@@ -631,28 +630,6 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 
 	tkn.skipBlank()
 	switch ch := tkn.lastChar; {
-	case isLetter(ch):
-		tkn.next()
-		if ch == 'X' || ch == 'x' {
-			if tkn.lastChar == '\'' {
-				tkn.next()
-				return tkn.scanHex()
-			}
-		}
-		if ch == 'B' || ch == 'b' {
-			if tkn.lastChar == '\'' {
-				tkn.next()
-				return tkn.scanBitLiteral()
-			}
-		}
-		typ, res := tkn.scanIdentifier(byte(ch), false)
-		if tkn.partialIdentifier != nil {
-			// prepend partialIdentifier to result
-			res = append(tkn.partialIdentifier, res...)
-			// remove remaining partialIdentifier for now
-			tkn.partialIdentifier = nil
-		}
-		return typ, res
 	case ch == '@':
 		tkn.next()
 		if tkn.potentialAccountName {
@@ -663,20 +640,6 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			isDbSystemVariable = true
 		}
 		return tkn.scanIdentifier(byte(ch), isDbSystemVariable)
-	case isDigit(ch):
-		typ, res := tkn.scanNumber(false)
-		if typ != LEX_ERROR {
-			return typ, res
-		}
-		// LEX_ERROR is returned from scanNumber iff we see an unexpected character, so try to parse as an identifier
-		// Additionally, if we saw a decimal at any point, throw the LEX_ERROR we received before
-		for _, c := range res {
-			if c == '.' {
-				return typ, res
-			}
-		}
-		typ1, res1 := tkn.scanIdentifier(byte(tkn.lastChar), false)
-		return typ1, append(res, res1[1:]...) // Concatenate the two partial symbols
 	case ch == ':':
 		return tkn.scanBindVar()
 	case ch == ';':
@@ -690,6 +653,50 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 		return ';', nil
 	case ch == eofChar:
 		return 0, nil
+	//case isLetter(ch):
+	//	tkn.next()
+	//	if ch == 'X' || ch == 'x' {
+	//		if tkn.lastChar == '\'' {
+	//			tkn.next()
+	//			return tkn.scanHex()
+	//		}
+	//	}
+	//	if ch == 'B' || ch == 'b' {
+	//		if tkn.lastChar == '\'' {
+	//			tkn.next()
+	//			return tkn.scanBitLiteral()
+	//		}
+	//	}
+	//	return tkn.scanIdentifier(byte(ch), false)
+	//case isDigit(ch):
+	//	return tkn.scanNumber(false)
+	case isLetter(ch) || isDigit(ch):
+		// Read token into memory, stopping at period, comma, or unicode.Space
+		buffer := &bytes2.Buffer{}
+		// TODO: do something about identifiers starting with @
+		for isLetter(tkn.lastChar) || isDigit(tkn.lastChar) {
+			tkn.consumeNext(buffer)
+		}
+		token := buffer.Bytes()
+
+		// Try to read as a number
+		typ, res := tkn.scanNumber2(token, false)
+
+		// Valid number
+		if typ != LEX_ERROR {
+			// Stopped at decimal, parse normally; otherwise, must be valid number
+			if tkn.lastChar == '.' {
+				tkn.next() // skip over dot
+				typ1, res1 := tkn.scanNumber(true)
+				return typ1, append(res, res1...)
+			} else {
+				return typ, res
+			}
+		}
+
+		// Read as an identifier
+		typ, res = tkn.scanIdentifier2(token)
+		return typ, res
 	default:
 		tkn.next()
 		switch ch {
@@ -714,12 +721,7 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			return VALUE_ARG, buf.Bytes()
 		case '.':
 			if isDigit(tkn.lastChar) {
-				typ, res := tkn.scanNumber(true)
-				if typ != LEX_ERROR {
-					return typ, res
-				}
-				// Save result to be concatenated to result
-				tkn.partialIdentifier = res[1:] // ignore decimal point
+				return tkn.scanNumber(true)
 			}
 			return int(ch), nil
 		case '/':
@@ -841,6 +843,27 @@ func (tkn *Tokenizer) scanIdentifier(firstByte byte, isDbSystemVariable bool) (i
 		return ID, lowered
 	}
 	return ID, buffer.Bytes()
+}
+
+// TODO: Maybe rename to validateIdentifier or maybeScanIdentifier
+// scanIdentifier2 reads a token and verifies that it can be used as an identifier
+func (tkn *Tokenizer) scanIdentifier2(token []byte) (int, []byte) {
+	// TODO: handle @?
+
+	// Convert to lowercase
+	lowered := bytes.ToLower(token)
+	loweredStr := string(lowered)
+
+	// Check if it's a keyword
+	if keywordID, found := keywords[loweredStr]; found {
+		return keywordID, token
+	}
+
+	// dual must always be case-insensitive
+	if loweredStr == "dual" {
+		return ID, lowered
+	}
+	return ID, token
 }
 
 func (tkn *Tokenizer) scanHex() (int, []byte) {
@@ -969,6 +992,71 @@ exit:
 	}
 
 	return token, buffer.Bytes()
+}
+
+func (tkn *Tokenizer) scanNumber2(buf []byte, seenDecimalPoint bool) (int, []byte) {
+	// read through buffer
+	token := INTEGRAL
+	idx := 0
+	// TODO: I don't think this will ever be true
+	if seenDecimalPoint {
+		token = FLOAT
+		idx++ // tkn.consumeNext
+		// Scan Mantissa (base 10)
+		for idx < len(buf) && digitVal(uint16(buf[idx])) < 10 {
+			idx++
+		}
+		goto exponent
+	}
+
+	// TODO: if above isn't necessary neither is this
+	// reached end of buffer
+	if idx == len(buf) {
+		goto exit
+	}
+
+	// 0x construct
+	if buf[idx] == '0' {
+		idx++ // tkn.consumeNext
+		// if there is next character, is it 'x' or 'X'
+		if idx < len(buf) && (buf[idx] == 'x' || buf[idx] == 'X') {
+			token = HEXNUM
+			idx++ // tkn.consumeNext
+			// Scan Mantissa (base 16)
+			for idx < len(buf) && digitVal(uint16(buf[idx])) < 16 {
+				idx++
+			}
+			goto exit
+		}
+	}
+
+	// Scan Mantissa (base 10)
+	for idx < len(buf) && digitVal(uint16(buf[idx])) < 10 {
+		idx++
+	}
+
+	// TODO: consider what happens when idx == len(buf)
+
+exponent:
+	if idx < len(buf) && (buf[idx] == 'e' || buf[idx] == 'E') {
+		token = FLOAT
+		idx++ // tkn.consumeNext
+		if idx < len(buf) && (buf[idx] == '+' || buf[idx] == '-') {
+			idx++ // tkn.consumeNext
+		}
+		// Scan Mantissa (base 10)
+		for idx < len(buf) && digitVal(uint16(buf[idx])) < 10 {
+			idx++
+		}
+	}
+
+exit:
+	// A letter cannot immediately follow a number.
+	if idx < len(buf) && isLetter(uint16(buf[idx])) {
+		return LEX_ERROR, buf
+	}
+
+	return token, buf
 }
 
 func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {

@@ -2459,8 +2459,8 @@ func TestValid(t *testing.T) {
 func TestTmp(t *testing.T) {
 	tests := []parseTest{
 		{
-			input:  "insert into t values (1.a)",
-			output: "create database 1a",
+			input:  "select a, current_user from t",
+			output: "select a, current_user() from t",
 		},
 	}
 	for _, tcase := range tests {
