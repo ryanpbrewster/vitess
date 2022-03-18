@@ -674,7 +674,7 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 		// Read token into memory, stopping at period, comma, or unicode.Space
 		buffer := &bytes2.Buffer{}
 		// TODO: do something about identifiers starting with @
-		for isLetter(tkn.lastChar) || isDigit(tkn.lastChar) {
+		for isLetter(tkn.lastChar) || isDigit(tkn.lastChar) || tkn.lastChar == '@' {
 			tkn.consumeNext(buffer)
 		}
 		token := buffer.Bytes()
@@ -720,6 +720,8 @@ func (tkn *Tokenizer) Scan() (int, []byte) {
 			fmt.Fprintf(buf, ":v%d", tkn.posVarIndex)
 			return VALUE_ARG, buf.Bytes()
 		case '.':
+			// TODO: expect either a number or an identifier
+			// somehow know that digit is bad without looking and return just period??
 			if isDigit(tkn.lastChar) {
 				return tkn.scanNumber(true)
 			}
@@ -849,6 +851,9 @@ func (tkn *Tokenizer) scanIdentifier(firstByte byte, isDbSystemVariable bool) (i
 // scanIdentifier2 reads a token and verifies that it can be used as an identifier
 func (tkn *Tokenizer) scanIdentifier2(token []byte) (int, []byte) {
 	// TODO: handle @?
+	if token[0] == '@' {
+		tkn.potentialAccountName = true
+	}
 
 	// Convert to lowercase
 	lowered := bytes.ToLower(token)
