@@ -2452,6 +2452,9 @@ var (
 		}, {
 			input:  "CREATE DATABASE `somedb` CHARACTER SET binary CHARSET binary COLLATE binary collate binary encryption 'n' encryption 'n'",
 			output: "create database somedb character set binary charset binary collate binary collate binary encryption n encryption n",
+		}, {
+			input:  "select * from current",
+			output: "select * from `current`",
 		},
 	}
 	// Any tests that contain multiple statements within the body (such as BEGIN/END blocks) should go here.
